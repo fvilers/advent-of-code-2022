@@ -27,21 +27,9 @@ impl FromStr for Move {
             "A" => Ok(Move::Rock),
             "B" => Ok(Move::Paper),
             "C" => Ok(Move::Scissors),
-
-            "X" => Ok(Move::Rock),
-            "Y" => Ok(Move::Paper),
-            "Z" => Ok(Move::Scissors),
-
             _ => Err(ParseMoveError),
         }
     }
-}
-
-#[derive(Debug, PartialEq)]
-enum RoundOutcome {
-    Lost,
-    Draw,
-    Win,
 }
 
 impl Move {
@@ -60,18 +48,51 @@ impl Move {
     }
 }
 
+#[derive(Debug, PartialEq)]
+enum RoundOutcome {
+    Lost,
+    Draw,
+    Win,
+}
+
+#[derive(Debug)]
+struct ParseRoundOutcomeError;
+
+impl FromStr for RoundOutcome {
+    type Err = ParseRoundOutcomeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "X" => Ok(RoundOutcome::Lost),
+            "Y" => Ok(RoundOutcome::Draw),
+            "Z" => Ok(RoundOutcome::Win),
+            _ => Err(ParseRoundOutcomeError),
+        }
+    }
+}
+
+const ALL_MOVES: [Move; 3] = [Move::Rock, Move::Paper, Move::Scissors];
+
 fn main() {
     let input = fs::read_to_string(INPUT_FILE).expect(&format!("Cannot read {INPUT_FILE} file"));
     let games = input.split(LINE_SEPARATOR);
     let total_score = games
         .map(|game| {
-            let moves: Vec<Move> = game
-                .split(" ")
-                .map(|s| s.parse::<Move>().expect("Cannot parse move"))
-                .collect();
-            let opponent_move = moves.get(0).expect("Cannot find opponent move");
-            let player_move = moves.get(1).expect("Cannot find player move");
-            let outcome = player_move.against(opponent_move);
+            let game: Vec<_> = game.split(" ").collect();
+            let opponent_move = game
+                .get(0)
+                .expect("Cannot find opponent move")
+                .parse::<Move>()
+                .expect("Cannot parse opponent move");
+            let outcome = game
+                .get(1)
+                .expect("Cannot round outcome")
+                .parse::<RoundOutcome>()
+                .expect("Cannot parse round outcome");
+            let player_move = ALL_MOVES
+                .iter()
+                .find(|&m| m.against(&opponent_move) == outcome)
+                .expect("Cannot determine player move");
 
             return match player_move {
                 Move::Rock => 1,
